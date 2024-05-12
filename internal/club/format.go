@@ -23,7 +23,7 @@ const (
 	clientNamePattern = `\w+`
 )
 
-func ParseEvent(line string) (IncomingEvent, error) {
+func ParseEvent(line string, info Info, prevTime time.Time) (IncomingEvent, error) {
 	words := strings.Split(line, " ")
 	if len(words) < 3 || len(words) > 4 {
 		return EmptyEvent{}, NewFormatError("invalid format of event")
@@ -35,6 +35,9 @@ func ParseEvent(line string) (IncomingEvent, error) {
 	t, err := time.Parse(TimeFormat, words[0])
 	if err != nil {
 		return EmptyEvent{}, NewFormatError("invalid time format")
+	}
+	if t.Before(prevTime) {
+		return EmptyEvent{}, NewFormatError("invalid time")
 	}
 	name := words[2]
 	match, err := regexp.MatchString(clientNamePattern, name)
@@ -51,6 +54,9 @@ func ParseEvent(line string) (IncomingEvent, error) {
 		table, err := strconv.Atoi(words[3])
 		if err != nil {
 			return EmptyEvent{}, NewFormatError("invalid table number format")
+		}
+		if table < 1 || table > info.tablesCount {
+			return EmptyEvent{}, NewFormatError("invalid number of table")
 		}
 		return ClientSatAtTheTableInEvent{
 			time:  t,

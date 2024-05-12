@@ -10,8 +10,10 @@ const (
 )
 
 type table struct {
-	id        int
-	startTime time.Time
-	state     tableState
-	client    *client
+	id          int
+	startTime   time.Time
+	state       tableState
+	client      *client
+	overallTime time.Time
+	gain        int
 }

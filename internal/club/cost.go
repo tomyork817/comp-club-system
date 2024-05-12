@@ -1,11 +1,12 @@
 package club
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 func countCost(startTime, endTime time.Time, costPerHour int) int {
-	hours := endTime.Hour() - startTime.Hour()
-	if endTime.Minute() != startTime.Minute() {
-		hours++
-	}
+	dur := endTime.Sub(startTime)
+	hours := int(math.Ceil(dur.Hours()))
 	return hours * costPerHour
 }

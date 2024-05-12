@@ -10,44 +10,52 @@ const (
 )
 
 type ComputerClub struct {
-	info      info
+	info      Info
 	clubState *clubState
 
 	events         []IncomingEvent
 	outgoingEvents []OutgoingEvent
 }
 
-type info struct {
+type Info struct {
 	tablesCount int
 	startTime   time.Time
 	endTime     time.Time
 	costPerHour int
 }
 
-type clubState struct {
-	tables      map[int]*table
-	clients     map[string]*client
-	waitQueue   []*client
-	overallCost int
+func NewInfo(tablesCount int, startTime, endTime time.Time, costPerHour int) Info {
+	return Info{
+		tablesCount: tablesCount,
+		startTime:   startTime,
+		endTime:     endTime,
+		costPerHour: costPerHour,
+	}
 }
 
-// NewComputerClub is a constructor of ComputerClub
-func NewComputerClub(tablesCount int, startTime, endTime time.Time, costPerHour int, events []IncomingEvent) ComputerClub {
-	info := info{tablesCount, startTime, endTime, costPerHour}
-	tables := make(map[int]*table, tablesCount)
-	for i := 1; i <= tablesCount; i++ {
+type clubState struct {
+	tables    map[int]*table
+	clients   map[string]*client
+	waitQueue []*client
+}
+
+func NewComputerClub(info Info, events []IncomingEvent) *ComputerClub {
+	tables := make(map[int]*table, info.tablesCount)
+	for i := 1; i <= info.tablesCount; i++ {
 		tables[i] = &table{
-			id:        i,
-			startTime: time.Time{},
-			state:     empty,
-			client:    nil,
+			id:          i,
+			startTime:   time.Time{},
+			state:       empty,
+			client:      nil,
+			overallTime: time.Time{},
+			gain:        0,
 		}
 	}
 	clients := make(map[string]*client)
 	waitQueue := make([]*client, 0)
 	outgoingEvents := make([]OutgoingEvent, 0)
-	state := clubState{tables, clients, waitQueue, 0}
-	return ComputerClub{
+	state := clubState{tables, clients, waitQueue}
+	return &ComputerClub{
 		info:           info,
 		clubState:      &state,
 		events:         events,
@@ -55,7 +63,14 @@ func NewComputerClub(tablesCount int, startTime, endTime time.Time, costPerHour 
 	}
 }
 
+func (c *ComputerClub) UpdateEvents(events []IncomingEvent) {
+	var newEvents []IncomingEvent
+	copy(newEvents, events)
+	c.events = newEvents
+}
+
 func (c *ComputerClub) RunIncomingEvents() {
+	c.outgoingEvents = make([]OutgoingEvent, 0)
 	for _, event := range c.events {
 		outEvent := event.execute(c.info, c.clubState)
 		c.outgoingEvents = append(c.outgoingEvents, event)
@@ -86,4 +101,7 @@ func (c *ComputerClub) Print() {
 		fmt.Println(event.String())
 	}
 	fmt.Println(c.info.endTime.Format(TimeFormat))
+	for i := 1; i <= c.info.tablesCount; i++ {
+		fmt.Printf("%d %d %s\n", i, c.clubState.tables[i].gain, c.clubState.tables[i].overallTime.Format(TimeFormat))
+	}
 }

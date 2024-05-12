@@ -41,7 +41,7 @@ type ClientSatAtTheTableOutEvent struct {
 }
 
 func (e ClientSatAtTheTableOutEvent) String() string {
-	return fmt.Sprintf("%s %d %s %d", e.time.Format(TimeFormat), clientGoneOutEventId, e.name, e.table)
+	return fmt.Sprintf("%s %d %s %d", e.time.Format(TimeFormat), clientSatAtTableOutEventId, e.name, e.table)
 }
 
 type ErrorEvent struct {

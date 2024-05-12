@@ -7,7 +7,8 @@ import (
 
 type IncomingEvent interface {
 	OutgoingEvent
-	execute(info info, clubState *clubState) OutgoingEvent
+	Time() time.Time
+	execute(info Info, clubState *clubState) OutgoingEvent
 }
 
 const (
@@ -23,7 +24,11 @@ func (e EmptyEvent) String() string {
 	return ""
 }
 
-func (e EmptyEvent) execute(info info, state *clubState) OutgoingEvent {
+func (e EmptyEvent) Time() time.Time {
+	return time.Time{}
+}
+
+func (e EmptyEvent) execute(info Info, state *clubState) OutgoingEvent {
 	return e
 }
 
@@ -32,7 +37,11 @@ type ClientCameEvent struct {
 	name string
 }
 
-func (e ClientCameEvent) execute(info info, clubState *clubState) OutgoingEvent {
+func (e ClientCameEvent) Time() time.Time {
+	return e.time
+}
+
+func (e ClientCameEvent) execute(info Info, clubState *clubState) OutgoingEvent {
 	_, ok := clubState.clients[e.name]
 	if ok {
 		return ErrorEvent{
@@ -64,7 +73,11 @@ type ClientSatAtTheTableInEvent struct {
 	table int
 }
 
-func (e ClientSatAtTheTableInEvent) execute(info info, clubState *clubState) OutgoingEvent {
+func (e ClientSatAtTheTableInEvent) Time() time.Time {
+	return e.time
+}
+
+func (e ClientSatAtTheTableInEvent) execute(info Info, clubState *clubState) OutgoingEvent {
 	_, ok := clubState.clients[e.name]
 	if !ok {
 		return ErrorEvent{
@@ -97,7 +110,8 @@ func (e ClientSatAtTheTableInEvent) execute(info info, clubState *clubState) Out
 		table := client.table
 		table.state = empty
 		table.client = nil
-		clubState.overallCost += countCost(table.startTime, e.time, info.costPerHour)
+		table.overallTime = addTime(table.overallTime, table.startTime, e.time)
+		table.gain += countCost(table.startTime, e.time, info.costPerHour)
 
 		client.table = clubState.tables[e.table]
 		client.table.client = client
@@ -117,6 +131,7 @@ func (e ClientSatAtTheTableInEvent) execute(info info, clubState *clubState) Out
 		client.table.client = client
 		client.table.startTime = e.time
 		client.table.state = busy
+		client.state = atTable
 
 		return EmptyEvent{}
 	default:
@@ -133,7 +148,11 @@ type ClientWaitingEvent struct {
 	name string
 }
 
-func (e ClientWaitingEvent) execute(info info, clubState *clubState) OutgoingEvent {
+func (e ClientWaitingEvent) Time() time.Time {
+	return e.time
+}
+
+func (e ClientWaitingEvent) execute(info Info, clubState *clubState) OutgoingEvent {
 	_, ok := clubState.clients[e.name]
 	if !ok {
 		return ErrorEvent{
@@ -177,7 +196,11 @@ type ClientGoneInEvent struct {
 	name string
 }
 
-func (e ClientGoneInEvent) execute(info info, clubState *clubState) OutgoingEvent {
+func (e ClientGoneInEvent) Time() time.Time {
+	return e.time
+}
+
+func (e ClientGoneInEvent) execute(info Info, clubState *clubState) OutgoingEvent {
 	_, ok := clubState.clients[e.name]
 	if !ok {
 		return ErrorEvent{
@@ -195,13 +218,16 @@ func (e ClientGoneInEvent) execute(info info, clubState *clubState) OutgoingEven
 
 		table.client = nil
 		table.state = empty
-		clubState.overallCost += countCost(table.startTime, e.time, info.costPerHour)
+		table.overallTime = addTime(table.overallTime, table.startTime, e.time)
+		table.gain += countCost(table.startTime, e.time, info.costPerHour)
 		if len(clubState.waitQueue) == 0 {
 			return EmptyEvent{}
 		}
 
 		client = clubState.waitQueue[0]
 		clubState.waitQueue = clubState.waitQueue[1:]
+		client.table = table
+		client.state = atTable
 		table.startTime = e.time
 		table.state = busy
 		table.client = client
@@ -224,7 +250,11 @@ type ClientGoneEndTimeEvent struct {
 	name string
 }
 
-func (e ClientGoneEndTimeEvent) execute(info info, clubState *clubState) OutgoingEvent {
+func (e ClientGoneEndTimeEvent) Time() time.Time {
+	return time.Time{}
+}
+
+func (e ClientGoneEndTimeEvent) execute(info Info, clubState *clubState) OutgoingEvent {
 	_, ok := clubState.clients[e.name]
 	if !ok {
 		return ErrorEvent{
@@ -242,7 +272,8 @@ func (e ClientGoneEndTimeEvent) execute(info info, clubState *clubState) Outgoin
 
 		table.client = nil
 		table.state = empty
-		clubState.overallCost += countCost(table.startTime, info.endTime, info.costPerHour)
+		table.overallTime = addTime(table.overallTime, table.startTime, info.endTime)
+		table.gain += countCost(table.startTime, info.endTime, info.costPerHour)
 
 		return ClientGoneOutEvent{
 			time: info.endTime,
