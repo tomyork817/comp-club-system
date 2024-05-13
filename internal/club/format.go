@@ -20,7 +20,7 @@ func (e FormatError) Error() string {
 }
 
 const (
-	clientNamePattern = `\w+`
+	clientNamePattern = `^\w+$`
 )
 
 func ParseEvent(line string, info Info, prevTime time.Time) (IncomingEvent, error) {

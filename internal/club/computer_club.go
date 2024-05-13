@@ -1,7 +1,9 @@
 package club
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 	"time"
 )
 
@@ -81,10 +83,16 @@ func (c *ComputerClub) RunIncomingEvents() {
 			c.outgoingEvents = append(c.outgoingEvents, outEvent)
 		}
 	}
+	events := make([]ClientGoneEndTimeEvent, 0, len(c.clubState.clients))
 	for _, client := range c.clubState.clients {
-		event := ClientGoneEndTimeEvent{
+		events = append(events, ClientGoneEndTimeEvent{
 			name: client.name,
-		}
+		})
+	}
+	slices.SortFunc(events, func(a, b ClientGoneEndTimeEvent) int {
+		return cmp.Compare(a.name, b.name)
+	})
+	for _, event := range events {
 		outEvent := event.execute(c.info, c.clubState)
 		switch outEvent.(type) {
 		case EmptyEvent:

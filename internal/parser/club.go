@@ -24,7 +24,7 @@ func NewParseError(message string) ParseError {
 func ReadComputerClub(filename string) (*club.ComputerClub, error) {
 	file, err := os.Open(filename)
 	if err != nil {
-		return nil, NewParseError("")
+		return nil, err
 	}
 
 	scanner := bufio.NewScanner(file)
