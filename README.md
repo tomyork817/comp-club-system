@@ -10,21 +10,27 @@
 ### Запуск
 
 #### Локальный запуск
+Вместо ``<filename>`` нужно писать имя файла с входными данными, который находится в папке, из которой запускается программа. 
+Для примера можно использовать файл ``test_file.txt``.
+
 ##### Linux
 ```shell
 go build -o task ./cmd
-./task test_data.txt
+./task <filename>
 ```
 
 ##### Windows
 ```shell
 go build -o task.exe ./cmd
-task.exe test_data.txt
+task.exe <filename>
 ```
 
 ##### В Docker-контейнере
 
-TODO
+```shell
+docker build -t comp-club-system .   
+docker run -v "$(pwd)"/<filename>:/app/<filename> comp-club-system <filename>
+```
 
 ##### Запуск тестов
 
